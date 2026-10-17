@@ -51,7 +51,7 @@ function request(path, method, body) {
       if (xhr.readyState !== 4) return;
       if (xhr.status >= 200 && xhr.status < 300) {
         try { resolve(xhr.responseText ? JSON.parse(xhr.responseText) : {}); }
-        catch (e) { resolve({}); }
+        catch (e) { reject(new Error('Response is not JSON')); }
       } else reject(new Error('HTTP ' + xhr.status));
     };
     xhr.onerror = function() { reject(new Error('Network error')); };
@@ -76,7 +76,8 @@ function sampleState() {
 }
 function normalizeState(data) {
   data = data || {};
-  var tasks = Array.isArray(data.tasks) ? data.tasks.slice() : (Array.isArray(data.pending) ? data.pending.slice() : []);
+  if (!Array.isArray(data.tasks) && !Array.isArray(data.pending)) throw new Error('Unexpected API response schema');
+  var tasks = Array.isArray(data.tasks) ? data.tasks.slice() : data.pending.slice();
   tasks.sort(function(a, b) { return Number(b.urgency || 0) - Number(a.urgency || 0); });
   state.tasks = tasks;
   var ctx = data.contexts || data.available_contexts || [];
@@ -89,7 +90,7 @@ function normalizeState(data) {
   state.status = 'SYNCED';
   var elapsed = Number(data.session_elapsed_seconds || data.elapsed_seconds || 0);
   var saved = getSession();
-  state.timerRunning = data.session_running !== undefined ? !!data.session_running : !!(saved && saved.running);
+  state.timerRunning = data.session_running !== undefined ? !!data.session_running : !!(saved && state.current && saved.uuid === String(state.current.uuid || state.current.id) && saved.running);
   if (state.current && saved && saved.uuid === state.current.uuid && elapsed === 0) {
     elapsed = Number(saved.elapsed || 0) + (saved.running ? Math.max(0, Math.floor((Date.now() - saved.updatedAt) / 1000)) : 0);
   }
