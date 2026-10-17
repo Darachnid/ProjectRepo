@@ -103,8 +103,9 @@ function field(obj, keys) {
   return '';
 }
 function listLine(t) {
-  return [t.uuid || t.id || '', t.description || t.title || '(untitled task)', t.project || '', t.urgency === undefined ? '' : t.urgency]
-    .map(function(v) { return String(v).replace(/[~\r\n]/g, ' ').slice(0, 120); }).join('~');
+  var values = [t.uuid || t.id || '', t.description || t.title || '(untitled task)', t.project || '', t.urgency === undefined ? '' : t.urgency];
+  var limits = [40, 54, 32, 8];
+  return values.map(function(v, i) { return String(v).replace(/[~\r\n]/g, ' ').slice(0, limits[i]); }).join('~');
 }
 function taskDetails(t) {
   if (!t) return '';
@@ -207,7 +208,7 @@ function onMessage(e) {
 function sendUiSettings(s) {
   var payload = {};
   ['Theme','Accent','ShowUrgency','ShowTags','ShowAnnotations','ShowDue'].forEach(function(k) {
-    if (s[k] !== undefined) payload[k] = s[k];
+    if (s[k] !== undefined) payload[k] = (k.indexOf('Show') === 0) ? (s[k] ? 1 : 0) : Number(s[k] || 0);
   });
   Pebble.sendAppMessage(payload, function() {}, function() {});
 }
