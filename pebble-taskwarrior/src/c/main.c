@@ -147,6 +147,7 @@ static void menu_draw(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_in
   menu_cell_basic_draw(ctx, cell_layer, title, sub, NULL);
 }
 static void show_view(int view);
+static void back_click(ClickRecognizerRef recognizer, void *context);
 static void menu_select(MenuLayer *menu, MenuIndex *index, void *data) {
   (void)menu; (void)data;
   if (s_view == VIEW_TASKS) {
@@ -163,20 +164,20 @@ static void menu_select(MenuLayer *menu, MenuIndex *index, void *data) {
   } else if (s_view == VIEW_ACTIONS) {
     s_selected_action = index->row;
     if (index->row == 0) {
-      send_command("action", s_view == VIEW_ACTIONS && s_selected_task < s_task_count ? s_uuid[s_selected_task] : s_current_uuid, "start", NULL);
-      if (s_selected_task < s_task_count) {
+      send_command("action", (s_selected_task >= 0 && s_selected_task < s_task_count) ? s_uuid[s_selected_task] : s_current_uuid, "start", NULL);
+      if (s_selected_task >= 0 && s_selected_task < s_task_count) {
         snprintf(s_current_uuid, sizeof(s_current_uuid), "%s", s_uuid[s_selected_task]);
         snprintf(s_current_title, sizeof(s_current_title), "%s", s_description[s_selected_task]);
         snprintf(s_current_project, sizeof(s_current_project), "%s", s_project_names[s_selected_task]);
       }
       s_elapsed = 0; s_timer_running = true; show_view(VIEW_CURRENT);
     } else if (index->row == 1) {
-      send_command("action", s_selected_task < s_task_count ? s_uuid[s_selected_task] : s_current_uuid, "done", NULL);
+      send_command("action", (s_selected_task >= 0 && s_selected_task < s_task_count) ? s_uuid[s_selected_task] : s_current_uuid, "done", NULL);
       s_timer_running = false; show_view(VIEW_CURRENT);
     } else show_view(VIEW_DELETE_CONFIRM);
   } else if (s_view == VIEW_DELETE_CONFIRM) {
     if (index->row == 0) {
-      send_command("action", s_selected_task < s_task_count ? s_uuid[s_selected_task] : s_current_uuid, "delete", NULL);
+      send_command("action", (s_selected_task >= 0 && s_selected_task < s_task_count) ? s_uuid[s_selected_task] : s_current_uuid, "delete", NULL);
       s_timer_running = false;
       snprintf(s_status, sizeof(s_status), "TASK DELETED");
       show_view(VIEW_CURRENT);
@@ -193,7 +194,10 @@ static void show_view(int view) {
   Layer *root = window_get_root_layer(s_window);
   GRect bounds = layer_get_bounds(root);
   if (view == VIEW_TASKS || view == VIEW_ACTIONS || view == VIEW_CONTEXTS || view == VIEW_DELETE_CONFIRM) {
-    s_menu = menu_layer_create(bounds);
+    const char *header = view == VIEW_TASKS ? "TASKS • URGENCY" : view == VIEW_ACTIONS ? "TASK ACTIONS" : view == VIEW_CONTEXTS ? "SET CONTEXT" : "CONFIRM DELETE";
+    s_header = make_text(GRect(4, 0, bounds.size.w - 8, 24), FONT_KEY_GOTHIC_14_BOLD, GTextAlignmentLeft);
+    text_layer_set_text(s_header, header);
+    s_menu = menu_layer_create(GRect(0, 24, bounds.size.w, bounds.size.h - 24));
     menu_layer_set_callbacks(s_menu, NULL, (MenuLayerCallbacks){
       .get_num_rows = menu_rows,
       .draw_row = menu_draw,
@@ -201,11 +205,12 @@ static void show_view(int view) {
     });
     menu_layer_set_highlight_colors(s_menu, s_accent_color, s_bg);
     menu_layer_set_click_config_onto_window(s_menu, s_window);
+    window_single_click_subscribe(BUTTON_ID_BACK, back_click);
     layer_add_child(root, menu_layer_get_layer(s_menu));
-    const char *header = view == VIEW_TASKS ? "TASKS • URGENCY" : view == VIEW_ACTIONS ? "TASK ACTIONS" : view == VIEW_CONTEXTS ? "SET CONTEXT" : "CONFIRM DELETE";
     menu_layer_set_normal_colors(s_menu, s_bg, s_fg);
     menu_layer_set_highlight_colors(s_menu, s_accent_color, s_bg);
-    menu_layer_set_selected_index(s_menu, MenuIndex(0, 0), MenuRowAlignCenter, false);
+    MenuIndex first = { .section = 0, .row = 0 };
+    menu_layer_set_selected_index(s_menu, first, MenuRowAlignCenter, false);
     return;
   }
   s_header = make_text(GRect(4, 0, bounds.size.w - 8, 22), FONT_KEY_GOTHIC_14_BOLD, GTextAlignmentLeft);
@@ -311,6 +316,8 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
   if ((t = dict_find(iter, MESSAGE_KEY_ShowAnnotations))) s_show_annotations = t->value->uint8 != 0;
   if ((t = dict_find(iter, MESSAGE_KEY_ShowDue))) s_show_due = t->value->uint8 != 0;
   apply_theme();
+  if (s_window) window_set_background_color(s_window, s_bg);
+  if (s_menu) menu_layer_reload_data(s_menu);
   if (s_window && s_view == VIEW_CURRENT) show_view(VIEW_CURRENT);
 }
 static void inbox_dropped(AppMessageResult reason, void *context) {
