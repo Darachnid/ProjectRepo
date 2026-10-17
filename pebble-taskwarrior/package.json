@@ -1,0 +1,28 @@
+{
+  "name": "pebble-taskwarrior",
+  "author": "Darachnid",
+  "version": "0.1.0",
+  "keywords": ["pebble-app", "taskwarrior", "productivity", "emery"],
+  "private": true,
+  "dependencies": {
+    "@rebble/clay": "^1.0.0"
+  },
+  "pebble": {
+    "displayName": "Taskwarrior",
+    "uuid": "9a4c85a7-1f5e-49a8-9d7a-5b8b1f3e2d41",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": ["emery"],
+    "watchapp": { "watchface": false },
+    "messageKeys": [
+      "TaskCount", "TaskLines", "ContextCount", "ContextLines",
+      "CurrentTitle", "CurrentProject", "CurrentPriority", "CurrentDifficulty",
+      "CurrentEstimate", "CurrentDue", "CurrentTags", "CurrentAnnotations",
+      "CurrentDetails", "CurrentUuid", "Elapsed", "ActiveContext", "StatusText",
+      "Command", "SelectedUuid", "SelectedAction", "Context",
+      "Theme", "Accent", "ShowUrgency", "ShowTags", "ShowAnnotations", "ShowDue"
+    ],
+    "resources": { "media": [] },
+    "capabilities": ["configurable"]
+  }
+}
