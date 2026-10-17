@@ -147,6 +147,7 @@ static void menu_draw(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_in
   menu_cell_basic_draw(ctx, cell_layer, title, sub, NULL);
 }
 static void show_view(int view);
+static void click_config(void *context);
 static void back_click(ClickRecognizerRef recognizer, void *context);
 static void menu_select(MenuLayer *menu, MenuIndex *index, void *data) {
   (void)menu; (void)data;
@@ -164,13 +165,16 @@ static void menu_select(MenuLayer *menu, MenuIndex *index, void *data) {
   } else if (s_view == VIEW_ACTIONS) {
     s_selected_action = index->row;
     if (index->row == 0) {
-      send_command("action", (s_selected_task >= 0 && s_selected_task < s_task_count) ? s_uuid[s_selected_task] : s_current_uuid, "start", NULL);
+      const char *chosen_uuid = (s_selected_task >= 0 && s_selected_task < s_task_count) ? s_uuid[s_selected_task] : s_current_uuid;
+      bool switching = chosen_uuid[0] && strcmp(chosen_uuid, s_current_uuid) != 0;
+      send_command("action", chosen_uuid, "start", NULL);
       if (s_selected_task >= 0 && s_selected_task < s_task_count) {
         snprintf(s_current_uuid, sizeof(s_current_uuid), "%s", s_uuid[s_selected_task]);
         snprintf(s_current_title, sizeof(s_current_title), "%s", s_description[s_selected_task]);
         snprintf(s_current_project, sizeof(s_current_project), "%s", s_project_names[s_selected_task]);
       }
-      s_elapsed = 0; s_timer_running = true; show_view(VIEW_CURRENT);
+      if (switching) s_elapsed = 0;
+      s_timer_running = true; show_view(VIEW_CURRENT);
     } else if (index->row == 1) {
       send_command("action", (s_selected_task >= 0 && s_selected_task < s_task_count) ? s_uuid[s_selected_task] : s_current_uuid, "done", NULL);
       s_timer_running = false; show_view(VIEW_CURRENT);
@@ -222,17 +226,9 @@ static void show_view(int view) {
   s_timer = make_text(GRect(4, 76, bounds.size.w - 8, 44), FONT_KEY_BITHAM_30_BLACK, GTextAlignmentLeft);
   text_layer_set_text_color(s_timer, s_accent_color);
   update_timer();
-  s_scroll = scroll_layer_create(GRect(0, 122, bounds.size.w, bounds.size.h - 139));
-  s_body = text_layer_create(GRect(4, 0, bounds.size.w - 12, 180));
-  text_layer_set_background_color(s_body, s_bg);
-  text_layer_set_text_color(s_body, s_fg);
-  text_layer_set_font(s_body, fonts_get_system_font(FONT_KEY_GOTHIC_14));
-  text_layer_set_text_alignment(s_body, GTextAlignmentLeft);
-  text_layer_set_text(s_body, s_details[0] ? s_details : "No task details received yet.\n\nUP: task list\nDOWN: context selector\nSELECT: actions");
-  scroll_layer_add_child(s_scroll, text_layer_get_layer(s_body));
-  scroll_layer_set_content_size(s_scroll, GSize(bounds.size.w, 180));
-  scroll_layer_set_click_config_onto_window(s_scroll, s_window);
-  layer_add_child(root, scroll_layer_get_layer(s_scroll));
+  s_body = make_text(GRect(4, 122, bounds.size.w - 8, bounds.size.h - 139), FONT_KEY_GOTHIC_14, GTextAlignmentLeft);
+  text_layer_set_text(s_body, s_details[0] ? s_details : "No task details received yet.\n\nUP: tasks\nDOWN: context\nSELECT: actions");
+  window_set_click_config_provider(s_window, click_config);
   s_footer = make_text(GRect(4, bounds.size.h - 17, bounds.size.w - 8, 16), FONT_KEY_GOTHIC_14, GTextAlignmentRight);
   text_layer_set_text(s_footer, s_status);
 }
