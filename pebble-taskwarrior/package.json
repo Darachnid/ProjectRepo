@@ -18,7 +18,7 @@
       "TaskCount", "TaskLines", "ContextCount", "ContextLines",
       "CurrentTitle", "CurrentProject", "CurrentPriority", "CurrentDifficulty",
       "CurrentEstimate", "CurrentDue", "CurrentTags", "CurrentAnnotations",
-      "CurrentDetails", "CurrentUuid", "Elapsed", "ActiveContext", "StatusText",
+      "CurrentDetails", "CurrentUuid", "Elapsed", "TimerRunning", "ActiveContext", "StatusText",
       "Command", "SelectedUuid", "SelectedAction", "Context",
       "Theme", "Accent", "ShowUrgency", "ShowTags", "ShowAnnotations", "ShowDue"
     ],
