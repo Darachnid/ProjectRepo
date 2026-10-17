@@ -5,7 +5,7 @@ module.exports = [
   { "type": "section", "items": [
     { "type": "heading", "defaultValue": "Connection / Tailscale" },
     { "type": "input", "messageKey": "TailnetHost", "defaultValue": "tasks.tail.ac1rv.gay", "label": "Tailscale / Tailnet hostname", "attributes": { "type": "text", "maxlength": 160 } },
-    { "type": "input", "messageKey": "APIBaseURL", "defaultValue": "", "label": "API base URL override (optional)", "attributes": { "type": "url", "maxlength": 240 } },
+    { "type": "input", "messageKey": "APIBaseURL", "defaultValue": "", "label": "API base URL override (optional)", "attributes": { "type": "url", "maxlength": 240 }, "description": "Leave blank to use https://<Tailnet hostname>. Enter the origin only; route paths below include /api/v1." },
     { "type": "input", "messageKey": "APIToken", "defaultValue": "", "label": "Bearer API token (if required)", "attributes": { "type": "password", "maxlength": 240 } },
     { "type": "text", "defaultValue": "Use the hostname reachable from your phone while Tailscale is connected. Do not use the TaskChampion sync URL as though it were a REST API." }
   ]},
