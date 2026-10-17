@@ -70,7 +70,8 @@ function sampleState() {
     contexts: ['none', 'PhD', 'Teaching', 'Personal', 'Home'],
     active_context: 'PhD',
     current_uuid: 'demo-1',
-    session_elapsed_seconds: 2537
+    session_elapsed_seconds: 2537,
+    session_running: true
   };
 }
 function normalizeState(data) {
@@ -88,8 +89,11 @@ function normalizeState(data) {
   state.status = 'SYNCED';
   var elapsed = Number(data.session_elapsed_seconds || data.elapsed_seconds || 0);
   var saved = getSession();
-  if (state.current && saved && saved.uuid === state.current.uuid && elapsed === 0) elapsed = saved.elapsed + Math.max(0, Math.floor((Date.now() - saved.updatedAt) / 1000));
-  if (state.current) saveSession(state.current.uuid, elapsed, saved && saved.running);
+  state.timerRunning = data.session_running !== undefined ? !!data.session_running : !!(saved && saved.running);
+  if (state.current && saved && saved.uuid === state.current.uuid && elapsed === 0) {
+    elapsed = Number(saved.elapsed || 0) + (saved.running ? Math.max(0, Math.floor((Date.now() - saved.updatedAt) / 1000)) : 0);
+  }
+  if (state.current) saveSession(state.current.uuid, elapsed, state.timerRunning);
   state.elapsed = elapsed;
 }
 function getSession() {
@@ -146,6 +150,7 @@ function sendState() {
     CurrentDetails: taskDetails(t).slice(0, 600),
     CurrentUuid: String(t.uuid || t.id || '').slice(0, 64),
     Elapsed: elapsed,
+    TimerRunning: state.timerRunning ? 1 : 0,
     ActiveContext: String(state.activeContext || '').slice(0, 80),
     StatusText: String(state.status || '').slice(0, 80)
   };
@@ -175,10 +180,15 @@ function localAction(action, uuid) {
     var elapsed = prev && prev.uuid === uuid ? prev.elapsed : 0;
     saveSession(uuid, elapsed, true);
     state.elapsed = elapsed;
+    state.timerRunning = true;
     state.status = state.connected ? 'SYNCED' : 'DEMO MODE';
   } else if ((action === 'done' || action === 'delete') && task) {
     state.tasks = state.tasks.filter(function(t) { return t !== task; });
-    if (state.current === task) state.current = state.tasks[0] || null;
+    if (state.current === task) {
+      state.current = state.tasks[0] || null;
+      state.timerRunning = false;
+      saveSession(state.current ? String(state.current.uuid || state.current.id) : '', 0, false);
+    }
     state.status = state.connected ? 'SYNCED' : 'DEMO MODE';
   }
   sendState();
