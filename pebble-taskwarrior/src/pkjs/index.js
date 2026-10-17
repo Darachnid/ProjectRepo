@@ -162,12 +162,21 @@ function refresh() {
     normalizeState(data);
     sendState();
   }).catch(function(err) {
-    state = { connected: false, status: 'DEMO • API NOT CONNECTED' };
-    normalizeState(sampleState());
+    if (!state.tasks || !state.tasks.length) {
+      state = { connected: false, status: 'DEMO • API NOT CONNECTED', tasks: [], contexts: [], activeContext: '', current: null };
+      normalizeState(sampleState());
+    } else {
+      state.connected = false;
+      state.status = 'DEMO • API NOT CONNECTED';
+      var saved = getSession();
+      if (saved && state.current && saved.uuid === String(state.current.uuid || state.current.id)) {
+        state.elapsed = Number(saved.elapsed || 0) + (saved.running ? Math.max(0, Math.floor((Date.now() - saved.updatedAt) / 1000)) : 0);
+        state.timerRunning = !!saved.running;
+        saveSession(saved.uuid, state.elapsed, state.timerRunning);
+      }
+    }
     state.connected = false;
     state.status = 'DEMO • API NOT CONNECTED';
-    var saved = getSession();
-    if (saved && state.current && saved.uuid === state.current.uuid) state.elapsed = saved.elapsed + (saved.running ? Math.floor((Date.now() - saved.updatedAt) / 1000) : 0);
     sendState();
     console.log('Taskwarrior API unavailable: ' + err.message);
   });
@@ -177,7 +186,7 @@ function localAction(action, uuid) {
   if (action === 'start' && task) {
     state.current = task;
     var prev = getSession();
-    var elapsed = prev && prev.uuid === uuid ? prev.elapsed : 0;
+    var elapsed = prev && prev.uuid === uuid ? Number(prev.elapsed || 0) + (prev.running ? Math.max(0, Math.floor((Date.now() - prev.updatedAt) / 1000)) : 0) : 0;
     saveSession(uuid, elapsed, true);
     state.elapsed = elapsed;
     state.timerRunning = true;
@@ -187,6 +196,7 @@ function localAction(action, uuid) {
     if (state.current === task) {
       state.current = state.tasks[0] || null;
       state.timerRunning = false;
+      state.elapsed = 0;
       saveSession(state.current ? String(state.current.uuid || state.current.id) : '', 0, false);
     }
     state.status = state.connected ? 'SYNCED' : 'DEMO MODE';
