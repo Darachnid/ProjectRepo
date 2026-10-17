@@ -305,6 +305,7 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
   if ((t = dict_find(iter, MESSAGE_KEY_ActiveContext))) snprintf(s_active_context, sizeof(s_active_context), "%s", t->value->cstring);
   if ((t = dict_find(iter, MESSAGE_KEY_StatusText))) snprintf(s_status, sizeof(s_status), "%s", t->value->cstring);
   if ((t = dict_find(iter, MESSAGE_KEY_Elapsed))) { s_elapsed = t->value->uint32; update_timer(); }
+  if ((t = dict_find(iter, MESSAGE_KEY_TimerRunning))) s_timer_running = t->value->uint8 != 0;
   if ((t = dict_find(iter, MESSAGE_KEY_Theme))) s_theme = t->value->uint8;
   if ((t = dict_find(iter, MESSAGE_KEY_Accent))) s_accent = t->value->uint8;
   if ((t = dict_find(iter, MESSAGE_KEY_ShowUrgency))) s_show_urgency = t->value->uint8 != 0;
